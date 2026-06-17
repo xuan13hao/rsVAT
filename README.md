@@ -7,15 +7,15 @@ This repository is a trimmed-down fork of [nf-core/rnaseq](https://nf-co.re/rnas
 
 ```
 FASTQ (R1[, R2])
-   │  trim / QC / strandedness   (FASTQ_QC_TRIM_FILTER_SETSTRANDEDNESS)
+   │  trim / QC
    ▼
-VAT_ALIGN ─── concatenate R1+R2 into one FASTQ, then `VAT nucl short RNAseq` → SAM
+VAT_ALIGN ─── 
    ▼
 SAMTOOLS_VIEW ─── SAM → BAM
    ▼
 BAM_SORT_STATS_SAMTOOLS ─── coordinate-sort + index + stats
    ▼
-SUBREAD_FEATURECOUNTS ─── single-end gene counting (no -p / --countReadPairs)
+SUBREAD_FEATURECOUNTS 
    ▼
 MERGE_FEATURECOUNTS ─── per-sample tables → gene_counts_matrix.tsv
    ▼
