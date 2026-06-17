@@ -21,7 +21,8 @@ process SUBREAD_FEATURECOUNTS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def paired_end = meta.single_end ? '' : '-p'
+    def vat_single_end_bam = params.aligner == 'vat' && params.vat_single_end_bam
+    def paired_end = (meta.single_end || vat_single_end_bam) ? '' : '-p'
 
     def strandedness = 0
     if (meta.strandedness == 'forward') {

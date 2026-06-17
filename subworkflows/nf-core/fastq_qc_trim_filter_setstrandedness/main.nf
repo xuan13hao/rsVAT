@@ -7,14 +7,15 @@ include { FQ_LINT as FQ_LINT_AFTER_TRIMMING  } from '../../../modules/nf-core/fq
 include { FQ_LINT as FQ_LINT_AFTER_BBSPLIT   } from '../../../modules/nf-core/fq/lint/main'
 include { FQ_LINT as FQ_LINT_AFTER_SORTMERNA } from '../../../modules/nf-core/fq/lint/main'
 
-include { FASTQ_SUBSAMPLE_FQ_SALMON          } from '../fastq_subsample_fq_salmon'
 include { FASTQ_FASTQC_UMITOOLS_TRIMGALORE   } from '../fastq_fastqc_umitools_trimgalore'
 include { FASTQ_FASTQC_UMITOOLS_FASTP        } from '../fastq_fastqc_umitools_fastp'
 
 //
 // Function to determine library type by comparing type counts.
 //
-
+// Retained because it is imported and reused by getInferexperimentStrandedness()
+// in subworkflows/local/utils_nfcore_rnaseq_pipeline. Salmon-specific parsing
+// (getSalmonInferredStrandedness) has been removed for the VAT-only workflow.
 //
 def calculateStrandedness(forwardFragments, reverseFragments, unstrandedFragments, stranded_threshold = 0.8, unstranded_threshold = 0.1) {
     def totalFragments = forwardFragments + reverseFragments + unstrandedFragments
@@ -43,32 +44,6 @@ def calculateStrandedness(forwardFragments, reverseFragments, unstrandedFragment
         reverseFragments: (reverseFragments / (totalFragments as double)) * 100,
         unstrandedFragments: (unstrandedFragments / (totalFragments as double)) * 100,
     ]
-}
-
-//
-// Function that parses Salmon quant 'lib_format_counts.json' output file to get inferred strandedness
-//
-def getSalmonInferredStrandedness(json_file, stranded_threshold = 0.8, unstranded_threshold = 0.1) {
-    // Parse the JSON content of the file
-    def libCounts = new groovy.json.JsonSlurper().parseText(json_file.text)
-
-    // Calculate the counts for forward and reverse strand fragments
-    def forwardKeys = ['SF', 'ISF', 'MSF', 'OSF']
-    def reverseKeys = ['SR', 'ISR', 'MSR', 'OSR']
-
-    // Calculate unstranded fragments (IU and U)
-    // NOTE: this is here for completeness, but actually all fragments have a
-    // strandedness (even if the overall library does not), so all these values
-    // will be '0'. See
-    // https://groups.google.com/g/sailfish-users/c/yxzBDv6NB6I
-    def unstrandedKeys = ['IU', 'U', 'MU']
-
-    def forwardFragments = forwardKeys.collect { libCounts[it] ?: 0 }.sum()
-    def reverseFragments = reverseKeys.collect { libCounts[it] ?: 0 }.sum()
-    def unstrandedFragments = unstrandedKeys.collect { libCounts[it] ?: 0 }.sum()
-
-    // Use shared calculation function to determine strandedness
-    return calculateStrandedness(forwardFragments, reverseFragments, unstrandedFragments, stranded_threshold, unstranded_threshold)
 }
 
 //
@@ -294,49 +269,21 @@ workflow FASTQ_QC_TRIM_FILTER_SETSTRANDEDNESS {
         }
     }
 
-    // Branch FastQ channels if 'auto' specified to infer strandedness
-    ch_filtered_reads
-        .branch { meta, fastq ->
-            auto_strand: meta.strandedness == 'auto'
-            return [meta, fastq]
-            known_strand: meta.strandedness != 'auto'
-            return [meta, fastq]
-        }
-        .set { ch_strand_fastq }
-
     //
-    // SUBWORKFLOW: Sub-sample FastQ files and pseudoalign with Salmon to auto-infer strandedness
+    // Set library strandedness directly from params.strandedness.
     //
-    // Return empty channel if ch_strand_fastq.auto_strand is empty so salmon index isn't created
-
-    ch_fasta
-        .combine(ch_strand_fastq.auto_strand)
-        .map { it.first() }
-        .first()
-        .set { ch_genome_fasta }
-
-    FASTQ_SUBSAMPLE_FQ_SALMON(
-        ch_strand_fastq.auto_strand,
-        ch_genome_fasta,
-        ch_transcript_fasta,
-        ch_gtf,
-        ch_salmon_index,
-        make_salmon_index,
-    )
-    ch_versions = ch_versions.mix(FASTQ_SUBSAMPLE_FQ_SALMON.out.versions)
-
-    FASTQ_SUBSAMPLE_FQ_SALMON.out.lib_format_counts
-        .join(ch_strand_fastq.auto_strand)
-        .map { meta, json, reads ->
-            def salmon_strand_analysis = getSalmonInferredStrandedness(json, stranded_threshold, unstranded_threshold)
-            def strandedness = salmon_strand_analysis.inferred_strandedness
-            if (strandedness == 'undetermined') {
-                strandedness = 'unstranded'
-            }
-            return [meta + [strandedness: strandedness, salmon_strand_analysis: salmon_strand_analysis], reads]
+    // VAT is the only supported aligner; it concatenates R1/R2 into a single
+    // read stream and emits a single-end-style BAM. Salmon-based automatic
+    // strandedness inference (FASTQ_SUBSAMPLE_FQ_SALMON -> SALMON_INDEX,
+    // FQ_SUBSAMPLE, SALMON_QUANT) is therefore not run. The strandedness is
+    // taken verbatim from params.strandedness, overriding any per-sample value
+    // (including 'auto') from the samplesheet.
+    // Supported values: 'unstranded', 'forward', 'reverse'.
+    //
+    ch_strand_inferred_fastq = ch_filtered_reads
+        .map { meta, fastq ->
+            [ meta + [ strandedness: params.strandedness ], fastq ]
         }
-        .mix(ch_strand_fastq.known_strand)
-        .set { ch_strand_inferred_fastq }
 
     emit:
     lint_log        = ch_lint_log

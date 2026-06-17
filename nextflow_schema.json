@@ -204,9 +204,9 @@
                 },
                 "featurecounts_group_type": {
                     "type": "string",
-                    "default": "gene_biotype",
+                    "default": "gene_id",
                     "fa_icon": "fas fa-layer-group",
-                    "description": "The attribute type used to group feature types in the GTF file when generating the biotype plot with featureCounts."
+                    "description": "GTF attribute used to group features for featureCounts. 'gene_id' emits a gene-level count table (usable for DESeq2/edgeR/limma). NCBI RefSeq GTFs lack 'gene_biotype', which would otherwise skip featureCounts entirely."
                 },
                 "featurecounts_feature_type": {
                     "type": "string",
@@ -391,10 +391,10 @@
             "properties": {
                 "aligner": {
                     "type": "string",
-                    "default": "star_salmon",
-                    "description": "Specifies the alignment algorithm to use - available options are 'star_salmon', 'star_rsem', 'hisat2' and 'vat'.",
+                    "default": "vat",
+                    "description": "Specifies the alignment algorithm to use - only 'vat' is supported in this fork.",
                     "fa_icon": "fas fa-map-signs",
-                    "enum": ["star_salmon", "star_rsem", "hisat2", "vat"]
+                    "enum": ["vat"]
                 },
                 "use_sentieon_star": {
                     "type": "boolean",
@@ -429,6 +429,13 @@
                     "default": "bin/VAT_latest.sif",
                     "fa_icon": "fas fa-box",
                     "description": "Path to the Singularity/Apptainer image used for VAT."
+                },
+                "vat_single_end_bam": {
+                    "type": "boolean",
+                    "default": true,
+                    "fa_icon": "fas fa-align-left",
+                    "description": "Treat the VAT alignment BAM as single-end in downstream featureCounts and dupRadar, even when the input FASTQ is paired-end.",
+                    "help_text": "The VAT aligner concatenates R1 and R2 into a single read stream and emits a single-end-style BAM without paired-end SAM FLAGs. When enabled (default), featureCounts is run without `-p/--countReadPairs` and dupRadar is run with `paired_end=FALSE` for the `vat` aligner only. This has no effect on the STAR, HISAT2 or Salmon routes."
                 },
                 "salmon_quant_libtype": {
                     "type": "string",
@@ -527,6 +534,12 @@
                     "maximum": 1,
                     "default": 0.1,
                     "description": "The difference in fraction of stranded reads assigned to 'forward' and 'reverse' below which a sample is classified as 'unstranded'. By default the forward and reverse fractions must differ by less than 0.1 for the sample to be called as unstranded."
+                },
+                "strandedness": {
+                    "type": "string",
+                    "default": "unstranded",
+                    "enum": ["unstranded", "forward", "reverse"],
+                    "description": "Library strandedness applied to all samples in the VAT workflow. Set directly instead of being inferred with Salmon."
                 }
             }
         },

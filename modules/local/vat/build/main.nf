@@ -30,7 +30,7 @@ process VAT_BUILD {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        vat: \$(VAT --version 2>&1 | head -n 1 | sed 's/^VAT[ _-]*//; s/^version[ _-]*//' || true)
+        vat: \$(VAT --version 2>&1 | grep -oE '[0-9]+[0-9a-z._-]*' | head -n 1 || VAT -version 2>&1 | grep -oE '[0-9]+[0-9a-z._-]*' | head -n 1 || echo "Unknown")
     END_VERSIONS
     """
 
