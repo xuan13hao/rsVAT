@@ -32,6 +32,7 @@ nextflow run /path/to/rsVAT \
   --outdir   results \
   --fasta    /path/to/genome.fa \
   --gtf      /path/to/genes.gtf \
+  --vat_single_end_bam true \
   --aligner vat\
   -profile   singularity \
 ```
