@@ -58,17 +58,6 @@ stream (see below). For single-end rows the single FASTQ is used as-is.
 
 ---
 
-## VAT-specific parameters
-
-| Parameter             | Default                       | Description |
-|-----------------------|-------------------------------|-------------|
-| `--aligner`           | `vat`                         | Alignment route. `vat` is the only accepted value. |
-| `--vat_index`         | `null`                        | Path to a pre-built VAT index directory. If omitted, an index is built from `--fasta` with `VAT makevatdb`. |
-| `--vat_container`     | `bin/VAT_latest.sif`          | Singularity/Apptainer image that provides the `VAT` binary. |
-| `--vat_single_end_bam`| `true`                        | Treat the VAT BAM as single-end in downstream featureCounts, even when the input FASTQ was paired-end. |
-
----
-
 ## Output
 
 The merged gene-level count matrix is published to:
