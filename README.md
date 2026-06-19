@@ -9,7 +9,7 @@ This repository is a trimmed-down fork of [nf-core/rnaseq](https://nf-co.re/rnas
 FASTQ (R1[, R2])
    │  trim / QC
    ▼
-VAT_ALIGN ─── 
+VAT_ALIGN 
    ▼
 SAMTOOLS_VIEW ─── SAM → BAM
    ▼
@@ -32,8 +32,8 @@ nextflow run /path/to/rsVAT \
   --outdir   results \
   --fasta    /path/to/genome.fa \
   --gtf      /path/to/genes.gtf \
+  --aligner vat\
   -profile   singularity \
-  -resume
 ```
 
 `--aligner vat` is the default, so it does not need to be passed. VAT runs inside
